@@ -6,6 +6,10 @@ Working prototype for the Opptra FDE Intern assignment.
 
 https://discount-engine-hazel.vercel.app/
 
+## Deployed Recording Video
+
+https://drive.google.com/file/d/1FnMuR0_0CQPQ6X-DRusKyrsJ-AEFyD93/view?usp=sharing
+
 ## Run Locally
 
 ```bash
