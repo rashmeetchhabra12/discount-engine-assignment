@@ -4,7 +4,7 @@ Working prototype for the Opptra FDE Intern assignment.
 
 ## Live URL
 
-Add deployed URL here before submission.
+https://discount-engine-hazel.vercel.app/
 
 ## Run Locally
 
