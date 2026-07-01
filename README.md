@@ -1,87 +1,72 @@
-# Opptra Discount Engine — Base Implementation
+# Opptra Discount Engine
 
-This is the base implementation for the Opptra FDE Intern assignment.
-Fork this repo, complete the tasks in the assignment brief, and submit your GitHub link + Loom.
+Working prototype for the Opptra FDE Intern assignment.
 
-## Running locally
+## Live URL
+
+Add deployed URL here before submission.
+
+## Run Locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Open `http://localhost:5173`.
 
-## Deploying
+For natural-language rule parsing, set `GEMINI_API_KEY` before starting the dev server:
 
 ```bash
-npm run build
+$env:GEMINI_API_KEY="your_key_here"
+npm run dev
 ```
 
-Deploy the `dist/` folder to Vercel, Netlify, or any static host.
-The live deployment URL must be in your README before submission.
+## What Is Built
 
-## How to use
+- CSV upload for discount rules and cart items.
+- Item-level discount engine with max-saving non-stackable rule selection.
+- Stackable rule application on top of the winning non-stackable rule.
+- Cart-level offers using `scope=cart` and `min_cart_value`.
+- Natural-language rule input through a server-side Gemini endpoint at `/api/parse-rule`.
+- Confirmation step before an LLM-parsed rule is added.
+- PDF cart upload using client-side `pdfjs-dist` parsing.
+- Customer-facing results with item rows, optional cart-offer row, subtotal, and final cart total.
 
-1. Upload `sample-data/rules.csv` as the discount rules input
-2. Upload `sample-data/cart.csv` as the cart input
-3. Click **Calculate Discounts**
+## CSV Formats
 
-## Project structure
+`sample-data/rules.csv`
 
-```
-src/
-  engine/
-    discountEngine.js   ← pure discount logic (no UI)
-    csvParser.js        ← CSV → typed objects
-  components/
-    CsvUploader.jsx     ← file upload area
-    DataTable.jsx       ← reusable table
-    ErrorBanner.jsx     ← parse error display
-  App.jsx               ← main UI + state
-  main.jsx              ← entry point
-
-sample-data/
-  rules.csv             ← sample discount rules
-  cart.csv              ← sample cart items
+```csv
+rule_id,scope,applies_to,type,value,stackable,min_cart_value
+RULE-01,platform,Amazon India,percentage,15,false,
+RULE-02,brand,Natura Casa,flat,150,false,
+RULE-03,platform,Flipkart,percentage,10,true,
+RULE-04,cart,,percentage,10,false,4000
 ```
 
-## CSV formats
+`sample-data/cart.csv`
 
-**rules.csv**
+```csv
+item_id,product,brand,platform,base_price
+ITEM-01,Cushion Cover,Natura Casa,Amazon India,1299
+ITEM-02,Bed Sheet Set,Natura Casa,Flipkart,849
+ITEM-03,Wall Shelf,LivSpace Pro,Amazon India,599
+ITEM-04,Ceramic Vase,LivSpace Pro,Noon,2499
+ITEM-05,Cutting Board,Nordic Basics,Amazon India,449
+ITEM-06,Desk Organiser,Nordic Basics,Flipkart,899
+```
 
-| Column     | Type              | Example          |
-|------------|-------------------|------------------|
-| rule_id    | string            | RULE-01          |
-| scope      | brand \| platform | platform         |
-| applies_to | string            | Amazon India     |
-| type       | percentage \| flat| percentage       |
-| value      | number            | 15               |
-| stackable  | true \| false     | false            |
+## Expected Sample Result
 
-**cart.csv**
+- Item subtotal after item-level discounts: `Rs.5,932`
+- Cart offer: `RULE-04`, `10% off`, saving `Rs.593`
+- Final cart total: `Rs.5,339`
 
-| Column     | Type   | Example      |
-|------------|--------|--------------|
-| item_id    | string | ITEM-01      |
-| product    | string | Cushion Cover|
-| brand      | string | Natura Casa  |
-| platform   | string | Amazon India |
-| base_price | number | 1299         |
+## Design Notes
 
-## Discount logic
-
-- When multiple non-stackable rules match an item, the one giving the **largest saving in rupees** is applied.
-- Rules marked `stackable: true` apply **on top of** the winning non-stackable rule.
-- If no rules match, the base price is returned with a "No offers available" note.
-
-## Expected results for the sample data
-
-| Item    | Base Price | Final Price | Reasoning                              |
-|---------|-----------|-------------|----------------------------------------|
-| ITEM-01 | Rs.1,299  | Rs.1,104    | Platform offer: 15% off (beats Rs.150) |
-| ITEM-02 | Rs.849    | Rs.629      | Brand offer: Rs.150 off + Platform 10% |
-| ITEM-03 | Rs.599    | Rs.509      | Platform offer: 15% off                |
-| ITEM-04 | Rs.2,499  | Rs.2,499    | No offers available                    |
-| ITEM-05 | Rs.449    | Rs.382      | Platform offer: 15% off                |
-| ITEM-06 | Rs.899    | Rs.809      | Platform offer: 10% off                |
+- The engine stays pure. CSV, PDF, and LLM inputs all adapt into the same `DiscountRule` and `CartItem` shapes.
+- Cart rules are evaluated after item-level discounts and shown as a separate cart-offer line.
+- If the cart total is below a cart-rule threshold, no cart-offer row is shown. This is not treated as an error.
+- The Gemini API key is never exposed to the browser. Vite serves the same `/api/parse-rule` endpoint locally, and Vercel can deploy `api/parse-rule.js`.
+- PDF upload assumes a text-based cart PDF with `Product`, `Brand`, `Platform`, and `Base Price` columns. Malformed or scanned PDFs surface a readable error.
